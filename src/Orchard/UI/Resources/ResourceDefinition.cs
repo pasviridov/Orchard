@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Mvc;
 
@@ -30,6 +32,13 @@ namespace Orchard.UI.Resources {
 
         private string _basePath;
         private readonly Dictionary<RequireSettings, string> _urlResolveCache = new Dictionary<RequireSettings, string>();
+
+        private static readonly Regex AbsoluteUrlRegex = new Regex(
+            @"^[a-z0-9]*//",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture | RegexOptions.Singleline);
+
+        private static readonly Lazy<string> _staticHash = new Lazy<string>(() => ConfigurationManager.AppSettings["orchard:StaticHash"]);
+        private static string StaticHash { get { return _staticHash.Value; } }
 
         public ResourceDefinition(ResourceManifest manifest, string type, string name) {
             Manifest = manifest;
@@ -208,8 +217,7 @@ namespace Orchard.UI.Resources {
                     ? VirtualPathUtility.ToAbsolute(url, applicationPath) 
                     : VirtualPathUtility.ToAbsolute(url);
             }
-            _urlResolveCache[settings] = url;
-            return url;
+            return HashedUrl(url);
         }
 
         public string FindNearestCulture(string culture) {
@@ -247,5 +255,12 @@ namespace Orchard.UI.Resources {
             return (Name ?? "").GetHashCode() ^ (Type ?? "").GetHashCode();
         }
 
+        public static string HashedUrl(string url) {
+            if (String.IsNullOrEmpty(url) || String.IsNullOrEmpty(StaticHash) || AbsoluteUrlRegex.IsMatch(url)) {
+                return url;
+            }
+
+            return url + (url.Contains("?") ? "&" : "?") + StaticHash;
+        }
     }
 }
