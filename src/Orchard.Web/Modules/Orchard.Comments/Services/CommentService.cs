@@ -66,7 +66,8 @@ namespace Orchard.Comments.Services {
         
         public IContentQuery<CommentPart, CommentPartRecord> GetComments() {
             return _orchardServices.ContentManager
-                       .Query<CommentPart, CommentPartRecord>();
+                       .Query<CommentPart, CommentPartRecord>()
+                       .OrderByDescending(x => x.CommentDateUtc);
         }
 
         public IContentQuery<CommentPart, CommentPartRecord> GetComments(CommentStatus status) {
